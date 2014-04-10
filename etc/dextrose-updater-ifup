@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2013 Gonzalo Odiard - gonzalo@sugarlabs.org
+# Licensed under the terms of the GNU GPL v2 or later.
+
+if [ "$2" = "up" ]; then
+    /usr/sbin/dextrose-updater
+fi
