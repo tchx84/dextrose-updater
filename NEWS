@@ -1,0 +1,25 @@
+Changes
+=======
+
+2011-02-15 v5
+-------------
+* Rename dextrose-update to dextrose-updater
+
+2011-02-15 v4
+-------------
+* Remove stampfile at the beginning; touch it only successful exit
+* Interpret check-update exit status correctly
+* More conveninet installer; install cron task
+
+2011-02-09 v3
+-------------
+* Do not recreate logfile on cheking updates
+
+2011-02-03 v2
+-------------
+* Do not stop daily updates on yum fails
+* Add version info
+
+2011-01-25 v1
+-------------
+* Initial release

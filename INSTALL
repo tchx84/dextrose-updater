@@ -1,0 +1,6 @@
+Install
+=======
+
+Execute:
+
+    make [DESTDIR=<path>] [REPO=<space-separated-list-of-yum-repos>] install

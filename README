@@ -1,0 +1,16 @@
+Introduction
+============
+
+It is a bash sctip to fetch yum updates and notifiy Sugar Shell.
+
+While working, script will create log in /var/log/dextrose-updater and
+/var/lib/dextrose-updater stamp file for checking update on daily basis.
+
+Download
+========
+
+http://download.sugarlabs.org/sources/external/dextrose-updater/
+
+Or checkout sources for read-only usage:
+
+``git clone git://git.sugarlabs.org/dextrose-updater/mainline.git dextrose-updater``

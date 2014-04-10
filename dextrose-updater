@@ -1,0 +1,125 @@
+#!/bin/sh
+
+name="@NAME@"
+version="@VERSION@"
+
+logfile="/var/log/${name}"
+stampfile="/var/lib/${name}"
+configfile="@CONFDIR@/${name}"
+
+while [ -n "$1" ] ; do
+    arg=$1
+    shift
+    case ${arg} in
+      	-f | --force)
+            force=1
+            ;;
+      	-V | --version)
+            echo "$0 v${version}"
+            exit 0
+            ;;
+      	-h | --help)
+            echo "Usage: $0 [OPTION]"
+            echo ""
+            echo "Dextrose yum updater."
+            echo ""
+            echo "Options:"
+            echo "  -f, --force     update regarless already made daily check"
+            echo "  -V, --version   display version info and exit"
+            echo "  -h, --help      display this help and exit"
+            echo ""
+            echo "Configuration files:"
+            echo "  /etc/sysconfig/${name}"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument $1"
+            exit 1
+            ;;
+    esac
+done
+
+if [ -f ${configfile} ]; then
+    . ${configfile}
+else
+    echo "Cannot find ${configfile} configuration file"
+    exit 1
+fi
+
+if [ -z "${force}" -a -f ${stampfile} ]; then
+    current_ts=$(date +%F)
+    check_ts=$(ls ${stampfile} -l --time-style=+%F | awk '{print $6}')
+
+    if [ ${current_ts} == ${check_ts} ]; then
+        echo "Daily check already happened, pass --force to ignore it."
+        exit 0
+    fi
+fi
+
+rm -f ${stampfile}
+
+echo "$(date)" >> ${logfile}
+echo -e "\tRepositories:" ${DEXTROSE_YUM_REPO} >> ${logfile}
+
+reboot_pkgs="kernel kernel-firmware"
+relogin_pkgs="sugar sugar-artwork sugar-base sugar-datastore sugar-presence-service sugar-toolkit"
+
+yum="/usr/bin/yum --disablerepo=* --skip-broken --quiet"
+for i in $DEXTROSE_YUM_REPO; do
+   yum="$yum --enablerepo=$i"
+done
+
+abort() {
+    echo "Update failed, see ${logfile} for details"
+    exit 1
+}
+
+updates() {
+    repos=$(${yum} -e0 check-update 2>>${logfile})
+    case $? in
+        0)  exit 0
+            ;;
+        100)
+            echo ${repos} | awk '/./{print $1 "-" $2}'
+            exit 0
+            ;;
+        *)  exit 1
+    esac
+}
+
+to_update=$(updates)
+[ $? -ne 0 ] && abort
+if [ -z "${to_update}" ]; then
+    touch ${stampfile}
+    exit 0
+fi
+
+parse() {
+    for i in $@; do
+        echo ${to_update} | grep "\(^\| \)$i\." >/dev/null && echo $i
+    done
+}
+
+need_reboot=$(parse ${reboot_pkgs})
+need_relogin=$(parse ${relogin_pkgs})
+
+echo -e "\tPackages to update:" ${to_update} >> ${logfile}
+${yum} -y update >> ${logfile} 2>&1 || abort
+to_update=$(updates)
+[ $? -ne 0 ] && abort
+touch ${stampfile}
+
+if [ "${need_reboot}" ]; then
+    if [ "${need_reboot}" != "$(parse ${reboot_pkgs})" ]; then
+        echo -e "\tNeed to reboot..." >> ${logfile}
+        dbus-send --system /org/sugarlabs/system org.sugarlabs.system.Reboot
+    fi
+fi
+
+if [ "${need_relogin}" ]; then
+    if [ "${need_relogin}" != "$(parse ${relogin_pkgs})" ]; then
+        echo -e "\tNeed to relogin..." >> ${logfile}
+        dbus-send --system /org/sugarlabs/system org.sugarlabs.system.Relogin
+    fi
+fi
