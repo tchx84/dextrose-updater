@@ -8,6 +8,9 @@ logfile="/var/log/${name}"
 stampfile="/var/lib/misc/last_os_update.stamp"
 configfile="@CONFDIR@/${name}"
 
+# needed to get the proxy configuration
+export XDG_CONFIG_HOME=/home/olpc/.config/
+
 while [ -n "$1" ] ; do
     arg=$1
     shift
@@ -57,6 +60,30 @@ if [ -z "${force}" -a -f ${stampfile} ]; then
         exit 0
     fi
 fi
+
+# get proxy values for olpc user
+HTTP_PROXY_HOST=$(gsettings get org.gnome.system.proxy.http host)
+HTTP_PROXY_PORT=$(gsettings get org.gnome.system.proxy.http port)
+HTTP_PROXY_USER=$(gsettings get org.gnome.system.proxy.http authentication-user)
+HTTP_PROXY_PASSWORD=$(gsettings get org.gnome.system.proxy.http authentication-password)
+
+# remove the old proxy configuration
+cat /etc/yum.conf | grep -v proxy > /tmp/yum.conf
+if [ ${HTTP_PROXY_HOST} != "''" ]; then
+    # add this lines
+    # proxy=http://myproxy.somewhere.com:9991
+    # proxy_username=yum-user
+    # proxy_password=qwerty
+    echo "proxy=http://${HTTP_PROXY_HOST}:${HTTP_PROXY_PORT}" |  sed "s/'//g" >> /tmp/yum.conf
+    if [ ${HTTP_PROXY_USER} != "''" ]; then
+        echo "proxy_username=${HTTP_PROXY_USER}" |  sed "s/'//g" >> /tmp/yum.conf
+    fi
+    if [ ${HTTP_PROXY_PASSWORD} != "''" ]; then
+        echo "proxy_password=${HTTP_PROXY_PASSWORD}" |  sed "s/'//g" >> /tmp/yum.conf
+    fi
+fi
+# update the file only if is different
+diff /etc/yum.conf /tmp/yum.conf 1>/dev/null || cp /tmp/yum.conf /etc/yum.conf; chmod 644 /etc/yum.conf
 
 rm -f ${stampfile}
 
