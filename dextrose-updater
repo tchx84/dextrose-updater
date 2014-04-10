@@ -4,7 +4,8 @@ name="@NAME@"
 version="@VERSION@"
 
 logfile="/var/log/${name}"
-stampfile="/var/lib/${name}"
+# this file is used in sugar > 0.100 to get the last update
+stampfile="/var/lib/misc/last_os_update.stamp"
 configfile="@CONFDIR@/${name}"
 
 while [ -n "$1" ] ; do
