@@ -108,7 +108,7 @@ updates() {
         0)  exit 0
             ;;
         100)
-            echo ${repos} | awk '/./{print $1 "-" $2}'
+            echo ${repos} | awk '/./{for (i=1;i<=NF;i++) if (i%3==0) print $(i-2)"-"$(i-1)}'
             exit 0
             ;;
         *)  exit 1
